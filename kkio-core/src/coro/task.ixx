@@ -6,10 +6,17 @@ import std;
 import kkio.coro_base;
 import kkio.traits;
 
-export module kkio.task;
-
+export module kkio.coro.task;
 
 namespace kkio::coro {
+
+    // 添加取消异常类
+    class CancellationException : public std::exception {
+    public:
+        const char* what() const noexcept override {
+            return "Task was cancelled";
+        }
+    };
 
     export template <typename T = void>
     class Task;
@@ -42,7 +49,7 @@ namespace kkio::coro {
 
         template<typename Promise>
         struct BaseTaskAwaiter {
-            std::coroutine_handle<Promise> callee_;
+            std::coroutine_handle<Promise> callee_{nullptr};
 
             auto await_ready() const noexcept -> bool {
                 return !callee_ || callee_.done();
@@ -58,6 +65,7 @@ namespace kkio::coro {
         struct BaseTaskPromise {
             std::coroutine_handle<> caller_ {nullptr};
             std::exception_ptr ex_ {nullptr};
+            bool cancelled_ {false};
 
             constexpr auto initial_suspend() const noexcept -> std::suspend_always {
                 return {};
@@ -72,9 +80,23 @@ namespace kkio::coro {
             }
 
             auto check_error() const {
+                if (cancelled_) {
+                    throw CancellationException();
+                }
                 if (ex_) {
                     std::rethrow_exception(ex_);
                 }
+            }
+
+            void request_cancellation() noexcept {
+                if (!cancelled_) {
+                    cancelled_ = true;
+                    ex_ = std::make_exception_ptr(CancellationException());
+                }
+            }
+
+            bool is_cancelled() const noexcept {
+                return cancelled_;
             }
 
             template<typename Awaiter>
@@ -177,6 +199,19 @@ namespace kkio::coro {
             }
         }
 
+ 
+        void cancel() noexcept {
+            if (handle_) {
+                handle_.promise().request_cancellation();
+                handle_.resume();
+            }
+        }
+
+      
+        bool is_cancelled() const noexcept {
+            return handle_ && handle_.promise().is_cancelled();
+        }
+
         auto handle() const noexcept -> std::coroutine_handle<promise_type> {
             return handle_;
         }
@@ -194,6 +229,5 @@ namespace kkio::coro {
     inline auto detail::TaskPromise<void>::get_return_object() -> Task<> {
         return Task{std::coroutine_handle<TaskPromise>::from_promise(*this)};
     }
-
 
 } // namespace kkio::coro
