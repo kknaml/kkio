@@ -193,7 +193,7 @@ export namespace kkio::runtime {
             resumeHandle(data->handle_);
         }
 
-        auto resumeHandle(std::coroutine_handle<> handle) -> void {
+        static auto resumeHandle(std::coroutine_handle<> handle) -> void {
             try {
                 handle();
             } catch (std::exception &e) {

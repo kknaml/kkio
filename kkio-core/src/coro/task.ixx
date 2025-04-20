@@ -51,6 +51,8 @@ namespace kkio::coro {
         struct BaseTaskAwaiter {
             std::coroutine_handle<Promise> callee_{nullptr};
 
+            explicit BaseTaskAwaiter(std::coroutine_handle<Promise> callee) noexcept : callee_(callee) {}
+
             auto await_ready() const noexcept -> bool {
                 return !callee_ || callee_.done();
             }
@@ -108,6 +110,7 @@ namespace kkio::coro {
             template<typename T>
             auto await_transform(this auto &&self, Task<T> &&task) {
                 struct Awaiter : BaseTaskAwaiter<typename Task<T>::promise_type> {
+                    using BaseTaskAwaiter<typename Task<T>::promise_type>::BaseTaskAwaiter;
                     auto await_resume() -> decltype(auto) {
                         return std::move(this->callee_.promise()).getValue();
                     }
@@ -118,6 +121,7 @@ namespace kkio::coro {
             template<typename T>
             auto await_transform(this auto &&self, Task<T> &task) {
                 struct Awaiter : BaseTaskAwaiter<typename Task<T>::promise_type> {
+                    using BaseTaskAwaiter<typename Task<T>::promise_type>::BaseTaskAwaiter;
                     auto await_resume() -> decltype(auto) {
                         return this->callee_.promise().getValue();
                     }

@@ -54,9 +54,13 @@ export namespace kkio::net {
         }
 
         ~TcpListener() noexcept {
+            close();
+        }
+
+        auto close() noexcept -> int {
             int fd = std::exchange(fd_, -1);
             if (fd >= 0) {
-                close_socket(fd);
+                closeSocket(fd);
             }
         }
 

@@ -57,7 +57,13 @@ export namespace kkio::uring {
         }
 
     protected:
-
+        auto setBufferSelectFlag() -> void {
+            std::println("Setting flags: IOSQE_BUFFER_SELECT");
+            this->sqe_->flags |= IOSQE_BUFFER_SELECT;
+            std::println("Setting buf_group to 1");
+            this->sqe_->buf_group = 1;
+            std::println("SQE flags after setup: {}", this->sqe_->flags);
+        }
     };
 
 } // namespace kkio::uring

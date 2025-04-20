@@ -6,13 +6,13 @@ import std;
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <errno.h>
+#include <cerrno>
 
 export module kkio.net.netutils;
 
 export namespace kkio::net {
 
-    inline auto close_socket(int fd) noexcept -> int {
+    inline auto closeSocket(int fd) noexcept -> int {
         return close(fd);
     }
 
@@ -24,7 +24,7 @@ export namespace kkio::net {
         }
         int opt = 1;
         if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-            close_socket(fd);
+            closeSocket(fd);
             throw std::runtime_error(std::format("set sockopt failed: {}", opt));
         }
         sockaddr_in addr{};
@@ -32,16 +32,16 @@ export namespace kkio::net {
         addr.sin_port = htons(port);
         // addr.sin_addr.s_addr = inet_addr(host.data());
         if (inet_pton(AF_INET, host.data(), &addr.sin_addr) <= 0) {
-            close_socket(fd);
+            closeSocket(fd);
             std::println("invalid host: {}, err: {}", host, errno);
         }
         if (auto r = bind(fd, reinterpret_cast<sockaddr *>(&addr), sizeof(addr)); r < 0) {
-            close_socket(fd);
+            closeSocket(fd);
             std::println("bind socket failed: {}", errno);
             throw std::runtime_error(std::format("bind socket failed: {}", errno));
         }
         if (listen(fd, SOMAXCONN) < 0) {
-            close_socket(fd);
+            closeSocket(fd);
             throw std::runtime_error(std::format("listen socket failed: {}", fd));
         }
         return fd;
