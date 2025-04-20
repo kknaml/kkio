@@ -104,10 +104,11 @@ export namespace kkio::runtime {
             uint32_t bufferInGroud = 128;
             size_t bufferSize = 4096;
             size_t pageSize = sysconf(_SC_PAGE_SIZE);
+            std::println("Setting up buffer ring with {} buffers of size {}", bufferInGroud, bufferSize);
             bufs_ = new void*[bufferInGroud];
             for (size_t i = 0; i < bufferInGroud; i++) {
                 if (posix_memalign(&bufs_[i], pageSize, bufferSize)) [[unlikely]] {
-                    std::println(stderr, "Failed to allocate buffers");
+                    std::println(stderr, "Failed to allocate buffer {}", i);
                     std::abort();
                 }
             }
@@ -117,17 +118,19 @@ export namespace kkio::runtime {
             }
             reg.ring_addr = reinterpret_cast<uint64_t>(br_);
             reg.ring_entries = bufferInGroud;
-            reg.bgid = index_;
+            reg.bgid = 1;
             if (auto r = io_uring_register_buf_ring(ring_, &reg, 0); r) [[unlikely]] {
-                std::println(stderr, "Failed to register buffer ring {}", r);
+                std::println(stderr, "Failed to register buffer ring {}, errno: {}", r, errno);
                 std::abort();
             }
+            std::println("Buffer ring registered successfully");
             io_uring_buf_ring_init(br_);
             for (int i = 0; i < bufferInGroud; i++) {
                 io_uring_buf_ring_add(br_, bufs_[i], bufferSize, i,
                     io_uring_buf_ring_mask(bufferInGroud), i);
             }
             io_uring_buf_ring_advance(br_, bufferInGroud);
+            std::println("Buffer ring setup completed");
         }
 
         auto prepEventRead() -> void {
@@ -169,13 +172,16 @@ export namespace kkio::runtime {
             auto res = cqe->res;
             data->result_ = res;
             if (res <= 0) [[unlikely]] {
-                std::println(stderr, "cqe res: {}", cqe->res);
+                if (res == -EFAULT) {
+                    std::println(stderr, "EFAULT error occurred, flags: {}, user_data: {}", cqe->flags, cqe->user_data);
+                }
+                std::println(stderr, "cqe res: {}, flags: {}", cqe->res, cqe->flags);
                 resumeHandle(data->handle_);
                 return;
             }
             if (cqe->flags & IORING_CQE_F_BUFFER) {
                 uint16_t bid = cqe->flags >> IORING_CQE_BUFFER_SHIFT;
-                std::println("bid: {}", bid);
+                std::println("bid: {}, buffer: {}", bid, (void *)bufs_[bid]);
                 auto buf = bufs_[bid];
                 data->buf_ = buf;
                 resumeHandle(data->handle_);

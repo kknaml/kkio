@@ -19,26 +19,25 @@ export namespace kkio::uring {
         io_uring_sqe *sqe_{nullptr};
         IOData data{};
 
-         template<typename F, typename ...Args>
-         requires std::invocable<F, io_uring_sqe *, Args...>
-         explicit BaseUringAwaiter(F &&f, Args ...args) {
+        template<typename F, typename ...Args>
+        requires std::invocable<F, io_uring_sqe *, Args...>
+        explicit BaseUringAwaiter(F &&f, Args ...args) {
 #ifdef DEBUG
-             if (getLocalRing() == nullptr) {
-                 throw std::runtime_error("localRingContext is null");
-             }
+            if (getLocalRing() == nullptr) {
+                throw std::runtime_error("localRingContext is null");
+            }
 #endif
 
-             auto ring = getLocalRing();
-             this->sqe_ = ring->getSqe();
-             if (sqe_ != nullptr) [[likely]] {
-                 setFlag();
-                 f(sqe_, args...);
-                 io_uring_sqe_set_data(sqe_, &this->data);
-             } else {
-                 // TODO
-                 std::abort();
-             }
-         }
+            auto ring = getLocalRing();
+            this->sqe_ = ring->getSqe();
+            if (sqe_ != nullptr) [[likely]] {
+                f(sqe_, args...);
+                io_uring_sqe_set_data(sqe_, &this->data);
+            } else {
+             // TODO
+                std::abort();
+            }
+        }
 
         auto await_ready() const noexcept -> bool {
              return sqe_ == nullptr;
@@ -58,11 +57,7 @@ export namespace kkio::uring {
         }
 
     protected:
-        auto setFlag(this auto &&self) noexcept -> void {
-             self.setFlagSub();
-        }
 
-        auto setFlagSub() {}
     };
 
 } // namespace kkio::uring
