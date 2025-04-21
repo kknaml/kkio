@@ -19,4 +19,6 @@ set(CMAKE_CXX_MODULE_STD 1)
 
 
 add_subdirectory(kkio-core)
+add_subdirectory(kkio-tls)
+add_subdirectory(kkio-http)
 add_subdirectory(test)

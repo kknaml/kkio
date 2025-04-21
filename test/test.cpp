@@ -4,8 +4,9 @@ import kkio.coro.task;
 import kkio.runtime;
 import kkio.net.tcplistener;
 import kkio.net.tcpstream;
+import kkio.util.delay;
+
 #include <cstdint>
-#include <cstring>
 
 kkio::coro::Task<> aaa() {
 
@@ -25,17 +26,19 @@ kkio::coro::Task<> aaa() {
 kkio::coro::Task<> bbb() {
     try {
         std::println("bbb");
-        auto stream = co_await kkio::net::TcpStream::connect("www.gaotiexueyuan.com", 80);
+        co_await kkio::util::delay(2000);
+        std::println("bbbbbbb");
+        auto stream = co_await kkio::net::TcpStream::connect("baidu.com", 80);
         std::println("connect {}", stream.innerFd());
-        const char *data = "GET / HTTP/1.1\r\n"
+        constexpr char data[] = "GET / HTTP/1.1\r\n"
                            "user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36 Edg/135.0.0.0\r\n"
                            "upgrade-insecure-requests: 1\r\n"
-                           "host: www.gaotiexueyuan.com\r\n"
+                           "host: baidu.com\r\n"
                            "sec-ch-ua: \"Microsoft Edge\";v=\"135\", \"Not-A.Brand\";v=\"8\", \"Chromium\";v=\"135\"\r\n"
                            "sec-ch-ua-mobile: ?0\r\n"
                            "sec-ch-ua-platform: \"Windows\"\r\n"
                            "\r\n";
-        std::span<uint8_t> span = std::span{(uint8_t *)data, strlen(data)};
+        std::span<uint8_t> span = std::span{(uint8_t *)data, sizeof(data)- 1};
         auto r = co_await stream.write(span);
         std::println("Write {}", r);
         auto data2 = co_await stream.read(4096);
