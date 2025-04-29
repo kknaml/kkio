@@ -60,8 +60,9 @@ export namespace kkio::net {
         auto close() noexcept -> int {
             int fd = std::exchange(fd_, -1);
             if (fd >= 0) {
-                closeSocket(fd);
+                return closeSocket(fd);
             }
+            return 0;
         }
 
     public:

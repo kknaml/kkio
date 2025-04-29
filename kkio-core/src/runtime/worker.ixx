@@ -70,8 +70,15 @@ export namespace kkio::runtime {
                 io_uring_cqe *cqe;
                 int ret = io_uring_wait_cqe(ring_, &cqe);
                 if (ret < 0) {
-                    std::println("ret < 0");
-                    continue;
+                    switch (ret) {
+                        case -EINTR:
+                            continue;
+                        case -EAGAIN:
+                            continue;
+                        default:
+                            std::println(stderr, "io_uring_wait_cqe error: {}", ret);
+                            std::abort();
+                    }
                 }
 
                 if (cqe->user_data == reinterpret_cast<uint64_t>(this)) [[unlikely]] {
@@ -172,6 +179,10 @@ export namespace kkio::runtime {
             auto res = cqe->res;
             data->result_ = res;
             if (res <= 0) [[unlikely]] {
+                if (res == -ETIME) { // timeout/delay
+                    resumeHandle(data->handle_);
+                    return;
+                }
                 if (res == -EFAULT) {
                     std::println(stderr, "EFAULT error occurred, flags: {}, user_data: {}", cqe->flags, cqe->user_data);
                 }

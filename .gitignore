@@ -12,5 +12,8 @@ _deps
 CMakeUserPresets.json
 
 .idea
+.vscode
 /cmake-build-debug
 /cmake-build-*
+
+/build

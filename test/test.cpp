@@ -49,9 +49,15 @@ kkio::coro::Task<> bbb() {
     co_return;
 }
 
+kkio::coro::Task<> testDelay() {
+    std::println("testDelay");
+    co_await kkio::util::delay(4000);
+    std::println("testDelay end");
+}
+
 int main() {
     std::println("Hello World!");
 
-    kkio::runtime::runBlocking(bbb());
+    kkio::runtime::runBlocking(testDelay());
     kkio::runtime::Runtime::GlobalRuntime->wait();
 }

@@ -2,7 +2,10 @@ export module kkio.traits;
 
 import std;
 
+export import kkio.inttype;
+
 export namespace kkio {
+
 
     class NonCopy {
     public:

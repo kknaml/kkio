@@ -124,6 +124,19 @@ export namespace kkio::net {
 
         // TODO readv writev
 
+        auto writeFully(std::span<uint8_t> data) const noexcept -> coro::Task<int> {
+            int totalSent = 0;
+            while (totalSent < data.size()) {
+                auto span = std::span{data.data() + totalSent, data.size() - totalSent};
+                auto sent = co_await write(span);
+                if (sent <= 0) {  
+                    co_return sent;
+                }
+                totalSent += sent;
+            }
+            co_return totalSent;
+        }
+
         auto close() {
             int fd = std::exchange(fd_, -1);
             if (fd >= 0) {

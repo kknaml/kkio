@@ -22,7 +22,7 @@ export namespace kkio::uring {
     public:
         explicit Ring() = default;
 
-        auto inner(this auto &&self) noexcept -> auto && {
+        auto inner(this auto &&self) noexcept -> auto {
             return &self.ring_;
         }
         auto init() noexcept {
