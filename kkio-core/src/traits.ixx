@@ -17,6 +17,8 @@ export namespace kkio {
     struct Unit final {};
     constexpr inline Unit unit{};
 
+    using Duration = std::chrono::milliseconds;
+
     template<typename T, typename R, typename... Args>
     concept Function = std::is_invocable_r_v<R, T, Args...>;
 
@@ -68,5 +70,30 @@ export namespace kkio {
 
     template <auto MethodPtr>
     using method_params_t = typename decltype(get_method_params<MethodPtr>())::type;
+
+    template<typename T, typename ...Types>
+    concept is_one_of = std::disjunction_v<std::is_same<T, Types>...>;
+
+    template<typename T, typename Visitor>
+    auto match(
+        is_one_of<std::optional<T>> auto &&op,
+        Visitor &&visitor
+    ) noexcept(noexcept(visitor()) && noexcept(visitor(std::declval<T>()))) -> decltype(auto) {
+        if (op) {
+            return std::invoke(visitor, std::forward<decltype(*op)>(*op));
+        } else {
+            return std::invoke(visitor);
+        }
+    }
+
+    struct Default {
+        template<typename T>
+        requires std::default_initializable<T>
+        constexpr operator T() const noexcept(noexcept(T{})) {
+            return {};
+        }
+    };
+
+    constexpr inline Default defaultValue{};
 
 } // namespace kkio
