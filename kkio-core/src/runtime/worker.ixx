@@ -7,8 +7,10 @@ module;
 // #include <memory>
 // #include <cstdlib>
 
-// import std;
-// import kkio.traits;
+#include <wsq.hpp>
+
+import std;
+import kkio.traits;
 // import kkio.uring.context;
 // import kkio.uring.iodata;
 
@@ -16,6 +18,22 @@ export module kkio.runtime.worker;
 
 
 export namespace kkio::runtime {
+
+    class KKWorker : NonCopy {
+        WorkStealingQueue<std::coroutine_handle<>> tasks_;
+
+    public:
+
+        KKWorker();
+
+        ~KKWorker();
+
+        auto addTask(std::coroutine_handle<> task) -> void;
+
+        auto run() noexcept -> void;
+
+
+    };
 
     // class StealingWorker : NonCopy {
     // private:

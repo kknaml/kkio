@@ -25,9 +25,9 @@ target_sources(kkio-core
 )
 
 if (WIN32)
-
+    target_link_libraries(kkio-core PUBLIC WorkStealingQueue)
 else()
-    target_link_libraries(kkio-core PUBLIC uring)
+    target_link_libraries(kkio-core PUBLIC uring WorkStealingQueue)
 
 endif ()
 
