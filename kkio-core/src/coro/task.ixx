@@ -5,15 +5,15 @@ module;
 import std;
 import kkio.coro_base;
 import kkio.traits;
+import kkio.coro.context;
 
 export module kkio.coro.task;
 
-namespace kkio::coro {
+export namespace kkio::coro {
 
-    // 添加取消异常类
-    class CancellationException : public std::exception {
+    class CancellationException final : public std::exception {
     public:
-        const char* what() const noexcept override {
+        const char *what() const noexcept override {
             return "Task was cancelled";
         }
     };
@@ -68,6 +68,7 @@ namespace kkio::coro {
             std::coroutine_handle<> caller_ {nullptr};
             std::exception_ptr ex_ {nullptr};
             bool cancelled_ {false};
+            CoroutineContext::Ptr context_ {nullptr};
 
             constexpr auto initial_suspend() const noexcept -> std::suspend_always {
                 return {};
@@ -79,6 +80,14 @@ namespace kkio::coro {
 
             auto unhandled_exception() noexcept {
                 this->ex_ = std::current_exception();
+            }
+
+            auto context() noexcept -> CoroutineContext::Ptr {
+                return this->context_;
+            }
+
+            auto setContext(CoroutineContext::Ptr context) noexcept {
+                this->context_ = context;
             }
 
             auto check_error() const {
@@ -222,6 +231,16 @@ namespace kkio::coro {
 
         auto takeHandle() noexcept -> std::coroutine_handle<promise_type> {
             return std::exchange(handle_, nullptr);
+        }
+
+        auto context() noexcept -> CoroutineContext::Ptr {
+            return handle_ ? handle_.promise().context() : nullptr;
+        }
+
+        auto setContext(CoroutineContext::Ptr context) noexcept -> void {
+            if (handle_) {
+                handle_.promise().setContext(context);
+            }
         }
     };
 
