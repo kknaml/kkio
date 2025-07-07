@@ -58,4 +58,20 @@ export namespace kkio {
     };
 
     constexpr inline Default default_value{};
+
+    // TODO
+    template<typename T>
+    consteval std::string_view type_name() {
+        constexpr std::string_view prefix = "[with T = ";
+        constexpr std::string_view suffix = "]";
+        constexpr std::string_view func = __PRETTY_FUNCTION__;
+        constexpr auto start = func.find(prefix) + prefix.size();
+        constexpr auto end = func.find(suffix, start);
+        return func.substr(start, end - start);
+    }
+
+    auto TODO(std::string_view msg = "") {
+        std::println("{} not impl", msg);
+        std::abort();
+    }
 }

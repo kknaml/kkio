@@ -23,12 +23,12 @@ export namespace kkio::runtime {
         uint64_t event_buf{};
 
     private:
-        auto run() noexcept -> void;
+        auto run(std::latch *latch) noexcept -> void;
 
         auto get_handle() noexcept -> std::coroutine_handle<>;
 
     public:
-        RingWorker(uint32_t entries, uint32_t flag, uint32_t bufs_in_group = 32);
+        RingWorker(uint32_t entries, uint32_t flag, uint32_t bufs_in_group, std::latch &latch);
 
         ~RingWorker() noexcept;
 
@@ -38,8 +38,15 @@ export namespace kkio::runtime {
 
         auto notify() noexcept -> void;
 
+        auto shutdown() noexcept -> void;
+
     public:
-        static auto create(uint32_t entries, uint32_t flag, uint32_t bufs_in_group) -> std::unique_ptr<RingWorker>;
+        static auto create(
+            uint32_t entries,
+            uint32_t flag,
+            uint32_t bufs_in_group,
+            std::latch &latch
+        ) -> std::unique_ptr<RingWorker>;
     };
 
 }

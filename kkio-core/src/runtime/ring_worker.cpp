@@ -1,5 +1,6 @@
 module;
 
+#include <cstdio>
 #include <liburing.h>
 #include <sys/eventfd.h>
 
@@ -17,7 +18,9 @@ namespace {
 
     auto resume_handle(std::coroutine_handle<> handle) noexcept {
         try {
-            handle();
+            if (handle) {
+                handle();
+            }
         } catch (...) {
             std::println("resume handle error");
             std::abort();
@@ -40,29 +43,46 @@ namespace {
 
 namespace kkio::runtime {
 
-    RingWorker::RingWorker(uint32_t entries, uint32_t flag, uint32_t bufs_in_group) {
+    RingWorker::RingWorker(
+        uint32_t entries,
+        uint32_t flag,
+        uint32_t bufs_in_group,
+        std::latch &latch
+    ) {
         this->ring.init(entries, flag, bufs_in_group);
-        this->thread = std::thread(&RingWorker::run, this);
+        this->thread = std::thread(&RingWorker::run, this, &latch);
         this->event_fd = eventfd(1, 0);
     }
 
-    auto RingWorker::run() noexcept -> void {
-        while (this->running) {
+    auto RingWorker::run(std::latch *latch) noexcept -> void {
+        std::println("run start");
 
+        prep_event_read(this->event_fd, *this, &this->event_buf);
+
+        latch->count_down();
+
+        while (this->running) {
+            std::println("loop start");
             { // app handle
                 auto handle = this->get_handle();
                 if (handle) {
+                    std::println("handle queue");
                     resume_handle(handle);
+                    std::println("post handle queue");
                     continue;
                 }
             }
 
+            std::println("wait cqe");
             io_uring_cqe *cqe{};
             auto ret = this->ring.wait(&cqe);
+            std::println("wait ret {}", ret);
             if (ret == 0) [[likely]] {
                 auto user_data = cqe->user_data;
                 if (user_data == reinterpret_cast<uint64_t>(this)) { // event fd
+                    std::println("wake up by event");
                     io_uring_cqe_seen(ring.get_ring(), cqe);
+                    prep_event_read(this->event_fd, *this, &this->event_buf);
                     continue;
                 }
 
@@ -74,9 +94,11 @@ namespace kkio::runtime {
                 }
                 resume_handle(data->io_handle);
             } else {
+                std::println(stderr, "wait ret: {}", ret);
                 std::abort();
             }
         }
+        std::println("run end");
     }
 
     auto RingWorker::get_handle() noexcept -> std::coroutine_handle<> {
@@ -88,6 +110,7 @@ namespace kkio::runtime {
     }
 
     RingWorker::~RingWorker() noexcept {
+        std::println("~RingWorker");
         this->running = false;
         wake_up(this->event_fd);
         if (this->thread.joinable()) this->thread.join();
@@ -109,7 +132,17 @@ namespace kkio::runtime {
         wake_up(this->event_fd);
     }
 
-    auto RingWorker::create(uint32_t entries, uint32_t flag, uint32_t bufs_in_group) -> std::unique_ptr<RingWorker> {
-        return std::make_unique<RingWorker>(entries, flag, bufs_in_group);
+    auto RingWorker::shutdown() noexcept -> void {
+        running = false;
+        wake_up(this->event_fd);
+    }
+
+    auto RingWorker::create(
+        uint32_t entries,
+        uint32_t flag,
+        uint32_t bufs_in_group,
+        std::latch &latch
+    ) -> std::unique_ptr<RingWorker> {
+        return std::make_unique<RingWorker>(entries, flag, bufs_in_group, latch);
     }
 }

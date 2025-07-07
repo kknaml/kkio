@@ -18,8 +18,13 @@ export namespace kkio::runtime {
             uint32_t parallel,
             uint32_t ring_entries,
             uint32_t ring_flag,
-            uint32_t bufs_in_ring_group
+            uint32_t bufs_in_ring_group,
+            std::latch &latch
         );
+
+        auto add_handle(std::coroutine_handle<> handle) noexcept -> void;
+
+        auto shutdown() noexcept -> void;
 
     private:
         auto next_worker() noexcept -> RingWorker &;
