@@ -64,6 +64,7 @@ export namespace kkio::coro {
             template<typename Promise2>
             auto await_suspend(std::coroutine_handle<Promise2> parent) -> std::coroutine_handle<> {
                 current.promise().parent = parent;
+                current.promise().cancel_token = parent.promise().cancel_token;
                 return current;
             }
         };

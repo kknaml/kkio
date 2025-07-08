@@ -12,6 +12,11 @@ export module kkio.uring.awaiter.base;
 
 using kkio::coro::PhantomAwaiter;
 
+// instantiation exposes TU-local entity
+auto io_uring_sqe_set_data_forward(io_uring_sqe *sqe, void *data) noexcept -> void {
+    ::io_uring_sqe_set_data(sqe, data);
+}
+
 export namespace kkio::uring {
 
 
@@ -22,14 +27,20 @@ export namespace kkio::uring {
 
         template<typename F, typename ...Args>
         requires std::is_invocable_v<F, io_uring_sqe *, Args...>
-        explicit explicit BaseUringOP(F &&f, Args ...args) {
+        explicit BaseUringOP(F &&f, Args ...args) {
             auto &ring = Ring::current();
-            auto sqe = ring.get_sqe();
+            auto *sqe = ring.get_sqe();
             if (sqe != nullptr) [[likely]] {
-                io_uring_sqe_set_data(sqe, &this->io_data);
+                io_uring_sqe_set_data_forward(sqe, &this->io_data);
                 f(sqe, args...);
                 this->sqe = sqe;
+            } else {
+                TODO();
             }
+#ifdef KKIO_DEBUG
+            this->io_data.msg = __PRETTY_FUNCTION__;
+#endif
+
         }
 
         auto await_ready() const noexcept -> bool {

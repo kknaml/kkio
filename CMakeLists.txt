@@ -13,5 +13,9 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # add_link_options("-lc++ -lc++abi")
 endif ()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_definitions(-DKKIO_DEBUG)
+endif ()
+
 add_subdirectory(kkio-core)
 add_subdirectory(kkio-test)

@@ -12,7 +12,7 @@ namespace kkio::runtime {
         uint32_t ring_flag,
         uint32_t bufs_in_ring_group,
         std::latch &&latch
-    ) :worker_pool(parallel, ring_entries, ring_flag, bufs_in_ring_group, latch) {
+    ) : worker_pool(parallel, ring_entries, ring_flag, bufs_in_ring_group, latch) {
         latch.wait();
     }
 

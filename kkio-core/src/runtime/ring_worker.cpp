@@ -56,7 +56,7 @@ namespace kkio::runtime {
 
     auto RingWorker::run(std::latch *latch) noexcept -> void {
         std::println("run start");
-
+        Ring::set_current(&this->ring);
         prep_event_read(this->event_fd, *this, &this->event_buf);
 
         latch->count_down();
@@ -81,7 +81,7 @@ namespace kkio::runtime {
                 auto user_data = cqe->user_data;
                 if (user_data == reinterpret_cast<uint64_t>(this)) { // event fd
                     std::println("wake up by event");
-                    io_uring_cqe_seen(ring.get_ring(), cqe);
+                    ring.seen(cqe);
                     prep_event_read(this->event_fd, *this, &this->event_buf);
                     continue;
                 }
@@ -93,11 +93,13 @@ namespace kkio::runtime {
                     data->buffer = this->ring.get_buffer(buffer_id);
                 }
                 resume_handle(data->io_handle);
+                ring.seen(cqe);
             } else {
                 std::println(stderr, "wait ret: {}", ret);
                 std::abort();
             }
         }
+        Ring::set_current(nullptr);
         std::println("run end");
     }
 

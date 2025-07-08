@@ -19,6 +19,9 @@ export namespace kkio::uring {
             void *data;
             CancellationToken *cancel_token;
         };
+#ifdef KKIO_DEBUG
+        std::string msg{};
+#endif
     };
 
     struct BufferResult {

@@ -43,6 +43,7 @@ export namespace kkio::uring {
         auto cancel(CancellationToken &token, void *user_data, int flag) -> void;
 
         static auto current() -> Ring &;
+        static auto set_current(Ring *ring) -> void;
     };
 
 }

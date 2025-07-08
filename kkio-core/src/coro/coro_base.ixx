@@ -24,16 +24,9 @@ export namespace kkio::coro {
     auto get_awaiter(T &&t) -> decltype(auto) {
         if constexpr (std::derived_from<std::remove_reference_t<T>, PhantomAwaiter<>>) {
             return std::forward<T>(t);
+        } else {
+            return PhantomAwaiter<T>::await_transform(std::forward<T>(t));
         }
-        return PhantomAwaiter<T>::await_transform(std::forward<T>(t));
     }
-
-    template<>
-    struct PhantomAwaiter<std::chrono::seconds> {
-        static auto await_transform(const std::chrono::seconds &t) -> decltype(auto) {
-            // TODO
-            return std::suspend_never{};
-        }
-    };
 
 }

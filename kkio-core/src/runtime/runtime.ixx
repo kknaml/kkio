@@ -4,6 +4,7 @@ module;
 import std;
 import kkio.traits;
 import kkio.coro.task;
+import kkio.coro.cancellation;
 import kkio.runtime.worker_pool;
 
 export module kkio.runtime.runtime;
@@ -42,6 +43,10 @@ export namespace kkio::runtime {
         template<typename T>
         auto block_on(Task<T> task) -> T {
             auto handle = task.get_handle();
+            auto &promise = handle.promise();
+            if (!promise.cancel_token) {
+                promise.cancel_token = std::make_shared<coro::CancellationToken>();
+            }
             worker_pool.add_handle(handle);
             std::unique_lock lock(mutex);
             handle.promise().invoke_on_completion([&] {

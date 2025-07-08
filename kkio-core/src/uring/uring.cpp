@@ -81,15 +81,10 @@ namespace {
 namespace kkio::uring {
 
     Ring::Ring() noexcept {
-        local_ring = this;
+
     }
 
     Ring::~Ring() noexcept {
-        if (local_ring != this) {
-            std::println(stderr, "Local Ring Mismatch!");
-        } else {
-            local_ring = nullptr;
-        }
         io_uring_queue_exit(&this->inner);
     }
 
@@ -152,6 +147,10 @@ namespace kkio::uring {
             std::abort();
         }
 #endif
-        return  *local_ring;
+        return *local_ring;
+    }
+
+    auto Ring::set_current(Ring *ring) -> void {
+        local_ring = ring;
     }
 }
