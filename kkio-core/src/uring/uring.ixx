@@ -5,8 +5,11 @@ module;
 
 import std;
 import kkio.traits;
+import kkio.coro.cancellation;
 
 export module kkio.uring.uring;
+
+using kkio::coro::CancellationToken;
 
 export namespace kkio::uring {
 
@@ -36,6 +39,10 @@ export namespace kkio::uring {
         auto seen(io_uring_cqe *cqe) -> void;
 
         auto get_buffer(int id) noexcept -> uint8_t *;
+
+        auto cancel(CancellationToken &token, void *user_data, int flag) -> void;
+
+        static auto current() -> Ring &;
     };
 
 }

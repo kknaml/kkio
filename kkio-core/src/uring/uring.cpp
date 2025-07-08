@@ -1,12 +1,19 @@
 module;
 
 #include <liburing.h>
+#include <cstdlib>
+#include <cstdio>
 
 import std;
+import kkio.uring.iodata;
 
 module kkio.uring.uring;
 
 namespace {
+
+    using kkio::uring::Ring;
+
+    thread_local Ring *local_ring{nullptr};
 
     constexpr int BUF_BGID_1 = 0;
 
@@ -73,9 +80,16 @@ namespace {
 
 namespace kkio::uring {
 
-    Ring::Ring() noexcept = default;
+    Ring::Ring() noexcept {
+        local_ring = this;
+    }
 
     Ring::~Ring() noexcept {
+        if (local_ring != this) {
+            std::println(stderr, "Local Ring Mismatch!");
+        } else {
+            local_ring = nullptr;
+        }
         io_uring_queue_exit(&this->inner);
     }
 
@@ -120,5 +134,24 @@ namespace kkio::uring {
 
     auto Ring::get_buffer(int id) noexcept -> uint8_t * {
         return bufs[id];
+    }
+
+    auto Ring::cancel(CancellationToken &token, void *user_data, int flag) -> void {
+        auto sqe = this->get_sqe();
+        // TODO
+
+        static_cast<IOData *>(user_data)->cancel_token = &token;
+        io_uring_prep_cancel(sqe, user_data, flag);
+        this->submit();
+    }
+
+    auto Ring::current() -> Ring & {
+#ifdef KKIO_DEBUG
+        if (local_ring == nullptr) {
+            std::println(stderr, "Local Ring Not Set!");
+            std::abort();
+        }
+#endif
+        return  *local_ring;
     }
 }

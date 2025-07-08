@@ -32,7 +32,7 @@ export namespace kkio::coro {
     struct PhantomAwaiter<std::chrono::seconds> {
         static auto await_transform(const std::chrono::seconds &t) -> decltype(auto) {
             // TODO
-            return std::suspend_always();
+            return std::suspend_never{};
         }
     };
 

@@ -16,7 +16,7 @@ export namespace kkio::runtime {
         Ring ring{};
         std::mutex mutex{};
         std::condition_variable condition{};
-        std::thread thread;
+        std::thread thread{};
         std::atomic_bool running{true};
         std::queue<std::coroutine_handle<>> queue{};
         int event_fd;
