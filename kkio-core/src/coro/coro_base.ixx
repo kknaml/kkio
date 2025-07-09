@@ -21,11 +21,11 @@ export namespace kkio::coro {
 
 
     template<typename T>
-    auto get_awaiter(T &&t) -> decltype(auto) {
+    constexpr auto get_awaiter(T &&t) -> decltype(auto) {
         if constexpr (std::derived_from<std::remove_reference_t<T>, PhantomAwaiter<>>) {
             return std::forward<T>(t);
         } else {
-            return PhantomAwaiter<T>::await_transform(std::forward<T>(t));
+            return PhantomAwaiter<std::remove_reference_t<T>>::await_transform(std::forward<T>(t));
         }
     }
 

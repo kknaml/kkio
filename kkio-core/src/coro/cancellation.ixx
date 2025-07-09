@@ -2,10 +2,33 @@ module;
 
 import std;
 import kkio.traits;
+import kkio.coro.base;
 
 export module kkio.coro.cancellation;
 
 export namespace kkio::coro {
+
+    class CancellationToken;
+
+    namespace detail {
+
+        struct CancellationTokenAwaiter final : PhantomAwaiter<> {
+            std::shared_ptr<CancellationToken> *token{nullptr};
+            constexpr auto await_ready() const noexcept -> bool {
+                return false;
+            }
+
+            template<typename Promise>
+            auto await_suspend(std::coroutine_handle<Promise> handle) noexcept -> bool {
+                this->token = &handle.promise().cancel_token;
+                return true;
+            }
+
+            auto await_resume() const noexcept -> std::shared_ptr<CancellationToken> * {
+                return this->token;
+            }
+        };
+    }
 
     class CancellationToken final : NonCopy {
     public:
@@ -25,6 +48,12 @@ export namespace kkio::coro {
         auto cancel(std::string msg) noexcept -> bool;
 
         auto invoke_on_cancellation(CancellationCallback cb) noexcept -> void;
+
+        auto invoke_cancellation_cb() -> void;
+
+        auto get_msg() const noexcept -> std::string_view;
+
+        static auto current() -> detail::CancellationTokenAwaiter;
     };
 
     class CancellationException final : public std::runtime_error {

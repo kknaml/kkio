@@ -35,6 +35,21 @@ namespace kkio::coro {
         }
     }
 
+    auto CancellationToken::invoke_cancellation_cb() -> void {
+        auto cbs = std::move(this->callbacks);
+        for (auto &cb : cbs) {
+            cb(*this);
+        }
+    }
+
+    auto CancellationToken::get_msg() const noexcept -> std::string_view {
+        return this->cancel_msg;
+    }
+
+    auto CancellationToken::current() -> detail::CancellationTokenAwaiter {
+        return {};
+    }
+
     CancellationException::CancellationException() : std::runtime_error("Operation was canceled") {}
 
     CancellationException::CancellationException(std::string_view what)

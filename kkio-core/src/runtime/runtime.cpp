@@ -5,6 +5,12 @@ import kkio.traits;
 
 module kkio.runtime.runtime;
 
+namespace {
+    using kkio::runtime::Runtime;
+
+    Runtime *global_runtime{nullptr};
+}
+
 namespace kkio::runtime {
     Runtime::Runtime(
         uint32_t parallel,
@@ -14,6 +20,7 @@ namespace kkio::runtime {
         std::latch &&latch
     ) : worker_pool(parallel, ring_entries, ring_flag, bufs_in_ring_group, latch) {
         latch.wait();
+        Runtime::set_current(this);
     }
 
     Runtime::Runtime(
@@ -26,6 +33,17 @@ namespace kkio::runtime {
     }
 
     Runtime::~Runtime() {
+        Runtime::set_current(nullptr);
+    }
 
+    auto Runtime::set_current(Runtime *runtime) -> void {
+        if (runtime != nullptr && global_runtime != nullptr) {
+            throw std::runtime_error("Runtime already set");
+        }
+        global_runtime = runtime;
+    }
+
+    auto Runtime::get_current() -> Runtime * {
+        return global_runtime;
     }
 }

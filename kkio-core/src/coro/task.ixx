@@ -14,7 +14,34 @@ export namespace kkio::coro {
     template<typename T = void>
     class Task;
 
+    template<typename T>
+    class JoinHandle;
+
+    class IOContext final {
+    public:
+        auto get_cancel_token() -> std::shared_ptr<CancellationToken> *;
+
+    };
+
     namespace detail {
+
+        struct IOContextAwaiter final : PhantomAwaiter<> {
+            IOContext *ctx{nullptr};
+
+            constexpr auto await_ready() const noexcept -> bool {
+                return false;
+            }
+
+            template<typename Promise>
+            auto await_suspend(std::coroutine_handle<Promise> handle) noexcept -> bool {
+                this->ctx = reinterpret_cast<IOContext *>(&handle.promise());
+                return false;
+            }
+
+            auto await_resume() const noexcept -> IOContext * {
+                return this->ctx;
+            }
+        };
 
         struct TaskFinalAwaiter {
             constexpr auto await_ready() const noexcept -> bool { return false; }
@@ -22,12 +49,17 @@ export namespace kkio::coro {
             template<typename Promise>
             auto await_suspend(std::coroutine_handle<Promise> current) const noexcept -> std::coroutine_handle<> {
                 auto &promise = current.promise();
+                promise.invoke_completion_cb();
                 if (promise.exception) {
                     try {
                         std::rethrow_exception(promise.exception);
                     } catch (CancellationException &e) {
                         // task was canceled
-                        TODO();
+                        auto *cancel_token = promise.cancel_token.get();
+                        if (cancel_token) {
+                            cancel_token->invoke_cancellation_cb();
+                        }
+                        TODO("Cancel");
                         // if (promise.parent) {
                         //     promise.parent.promise().exception = promise.exception;
                         //     return promise.parent;
@@ -42,9 +74,7 @@ export namespace kkio::coro {
                     return promise.parent;
                 }
                 // root task
-                // current.destroy();
-                // current();
-                current.promise().invoke_completion_cb();
+                // see Runtime::block_on
                 return std::noop_coroutine();
             }
 
@@ -87,14 +117,27 @@ export namespace kkio::coro {
             }
 
             auto invoke_completion_cb() {
-                auto cbs = std::move(completions);
-                for (auto &cb : cbs) {
-                    cb();
+                try {
+                    auto cbs = std::move(completions);
+                    for (auto &cb : cbs) {
+                        cb();
+                    }
+                } catch (std::exception &e) {
+                    std::println(stderr, "Error in task completion callback: {}", e.what());
+#ifdef KKIO_DEBUG
+                    std::abort();
+#endif
+                } catch (...) {
+                    std::println(stderr, "Unknown error in task completion callback!");
+#ifdef KKIO_DEBUG
+                    std::abort();
+#endif
                 }
+
             }
 
             auto invoke_on_completion(Action auto &&f) {
-                if (static_cast<Promise *>(this)->has_value()) {
+                if (static_cast<Promise *>(this)->is_done()) {
                     f();
                 } else {
                     this->completions.emplace_back(std::forward<decltype(f)>(f));
@@ -139,8 +182,9 @@ export namespace kkio::coro {
                 return Awaiter{task.take_handle()};
             }
 
-            auto await_transform(auto &&awaiter_like) -> decltype(auto) {
-                return get_awaiter(std::forward<decltype(awaiter_like)>(awaiter_like));
+            template<typename Awaiter>
+            auto await_transform(Awaiter &&awaiter) -> decltype(auto) {
+                return get_awaiter(std::forward<Awaiter>(awaiter));
             }
 
         };
@@ -168,6 +212,10 @@ export namespace kkio::coro {
             auto has_value() const noexcept -> bool {
                 return this->value != std::nullopt;
             }
+
+            auto is_done() const noexcept -> bool {
+                return this->has_value() || this->exception != nullptr;
+            }
         };
 
         template<>
@@ -186,6 +234,29 @@ export namespace kkio::coro {
             auto has_value() const noexcept -> bool {
                 return this->value_filled;
             }
+
+            auto is_done() const noexcept -> bool {
+                return this->has_value() || this->exception != nullptr;
+            }
+        };
+
+        template<typename T>
+        struct JoinHandleAwaiter {
+            using promise_t = typename Task<T>::promise_type;
+            std::coroutine_handle<promise_t> current{nullptr};
+
+            explicit JoinHandleAwaiter(std::coroutine_handle<promise_t> handle) : current(handle) {}
+
+            auto await_ready() const noexcept -> bool {
+                return false;
+            }
+
+            template<typename Promise>
+            auto await_suspend(std::coroutine_handle<Promise> handle) -> void;
+
+            auto await_resume() & -> decltype(auto);
+
+            auto await_resume() && -> decltype(auto);
         };
     }
 
@@ -226,6 +297,45 @@ export namespace kkio::coro {
         }
     };
 
+    template<typename T>
+    class JoinHandle final : NonCopy {
+    public:
+        using promise_t = typename Task<T>::promise_type;
+    private:
+        std::coroutine_handle<promise_t> current;
+
+    public:
+        explicit JoinHandle(std::coroutine_handle<promise_t> handle) : current(handle) {}
+
+        JoinHandle(JoinHandle &&other) : current(std::exchange(other.current, nullptr)) {}
+
+        auto get_handle() const noexcept -> std::coroutine_handle<promise_t> {
+            return current;
+        }
+
+        auto take_handle() noexcept -> std::coroutine_handle<promise_t> {
+            return std::exchange(current, nullptr);
+        }
+
+        ~JoinHandle() {
+            if (auto handle = std::exchange(current, nullptr)) {
+                handle.destroy();
+            }
+        }
+    };
+
+    constexpr auto current_io_context() -> detail::IOContextAwaiter {
+        return {};
+    }
+
+    template<typename T>
+    struct PhantomAwaiter<JoinHandle<T>> {
+        static auto await_transform(const JoinHandle<T> &handle) -> auto {
+
+            return detail::JoinHandleAwaiter<T>{handle.get_handle()};
+        }
+    };
+
     namespace detail {
 
         template<typename T>
@@ -235,6 +345,22 @@ export namespace kkio::coro {
 
         auto TaskPromise<void>::get_return_object() noexcept -> Task<> {
             return Task{std::coroutine_handle<TaskPromise>::from_promise(*this)};
+        }
+
+        template<typename T>
+        template<typename Promise>
+        auto JoinHandleAwaiter<T>::await_suspend(std::coroutine_handle<Promise> handle) -> void {
+            this->current.promise().invoke_on_completion(handle);
+        }
+
+        template<typename T>
+        auto JoinHandleAwaiter<T>::await_resume() & -> decltype(auto) {
+            return this->current.promise().get_value();
+        }
+
+        template<typename T>
+        auto JoinHandleAwaiter<T>::await_resume() && -> decltype(auto) {
+            return std::move(this->current.promise().get_value()).get_value();
         }
 
     }

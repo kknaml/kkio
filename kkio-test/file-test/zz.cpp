@@ -7,13 +7,22 @@ import kkio.traits;
 import kkio.coro.awaiter_traits;
 import kkio.runtime.runtime;
 import kkio.uring.awaiter.all;
+import kkio.coro.cancellation;
 
 using kkio::coro::Task;
 using namespace std::chrono_literals;
 
 Task<> foo() {
-    co_await 1s;
     co_await 10ms;
+    // throw kkio::coro::CancellationException("WTF");
+    // throw std::runtime_error("QAQ");
+    auto *ctx = co_await kkio::coro::current_io_context();
+    auto sub = kkio::runtime::launch(ctx, [] -> Task<int> {
+        co_await 1000ms;
+        co_return 1145;
+    });
+    co_await 10ms;
+    std::println("sub is {}", co_await sub);
     co_await kkio::uring::delay(1);
     co_return;
 }
@@ -32,9 +41,13 @@ int main(int argc, char *argv[]) {
 
     auto runtime = kkio::runtime::Runtime(1);
 
-    std::println("pre block");
-    auto result = runtime.block_on(bar);
-    std::println("post block");
+    try {
+        std::println("pre block");
+        auto result = runtime.block_on(bar);
+        std::println("post block");
 
-    std::println("hello: {}", result);
+        std::println("hello: {}", result);
+    } catch (std::exception &e) {
+        std::println("bar error: {}", e.what());
+    }
 }
