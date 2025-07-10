@@ -11,9 +11,11 @@ import kkio.coro.cancellation;
 
 using kkio::coro::Task;
 using namespace std::chrono_literals;
+using namespace kkio::uring;
 
 Task<> foo() {
     co_await 10ms;
+    co_await yield();
     // throw kkio::coro::CancellationException("WTF");
     // throw std::runtime_error("QAQ");
     auto *ctx = co_await kkio::coro::current_io_context();
