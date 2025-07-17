@@ -18,7 +18,11 @@ export namespace kkio::net {
 
         virtual auto family() const noexcept -> sa_family_t = 0;
 
-        virtual operator const sockaddr *() const noexcept = 0;
+        virtual auto to_addr() const noexcept -> const sockaddr * = 0;
+
+        virtual auto to_addr() noexcept -> sockaddr * = 0;
+
+        virtual auto get_port() const noexcept -> uint16_t = 0;
 
         virtual auto length() const noexcept -> socklen_t = 0;
 
@@ -38,8 +42,16 @@ export namespace kkio::net {
             return AF_INET;
         }
 
-        operator const sockaddr *() const noexcept override {
-            return reinterpret_cast<const sockaddr *>(&this->addr);
+        auto to_addr() const noexcept -> const sockaddr * override {
+            return reinterpret_cast<const sockaddr *>(&addr);
+        }
+
+        auto to_addr() noexcept -> sockaddr * override {
+            return reinterpret_cast<sockaddr *>(&addr);
+        }
+
+        auto get_port() const noexcept -> uint16_t override {
+            return ntohs(addr.sin_port);
         }
 
         constexpr auto length() const noexcept -> socklen_t override {
@@ -60,8 +72,16 @@ export namespace kkio::net {
             return AF_INET6;
         }
 
-        operator const sockaddr *() const noexcept override {
-            return reinterpret_cast<const sockaddr *>(&this->addr);
+        auto to_addr() noexcept -> sockaddr * override {
+            return reinterpret_cast<sockaddr *>(&addr);
+        }
+
+        auto to_addr() const noexcept -> const sockaddr * override {
+            return reinterpret_cast<const sockaddr *>(&addr);
+        }
+
+        auto get_port() const noexcept -> uint16_t override {
+            return addr.sin6_port;
         }
 
         constexpr auto length() const noexcept -> socklen_t override {
@@ -83,8 +103,16 @@ export namespace kkio::net {
             return AF_UNIX;
         }
 
-        operator const sockaddr *() const noexcept override {
-            return reinterpret_cast<const sockaddr *>(&this->addr);
+        auto to_addr() noexcept -> sockaddr * override {
+            return reinterpret_cast<sockaddr *>(&addr);
+        }
+
+        auto to_addr() const noexcept -> const sockaddr * override {
+            return reinterpret_cast<const sockaddr *>(&addr);
+        }
+
+        auto get_port() const noexcept -> uint16_t override {
+            return ntohs(addr.sun_family);
         }
 
         auto length() const noexcept -> socklen_t override {

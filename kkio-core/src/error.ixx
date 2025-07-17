@@ -11,6 +11,8 @@ export namespace kkio {
     public:
         int code{};
         std::string message{};
+
+        static auto from(int code) noexcept -> Error;
     };
 
     template<typename T>

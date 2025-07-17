@@ -60,6 +60,12 @@ export namespace kkio::uring {
         }
 
     protected:
+
+        BaseUringOP(BaseUringOP &&other) noexcept :
+        sqe(std::exchange(other.sqe, nullptr)), io_data(other.io_data) {
+            io_uring_sqe_set_data_forward(sqe, &this->io_data);
+        }
+
         auto get_buffer_result() const noexcept -> BufferResult {
             return {.data = io_data.buffer, .size = io_data.io_result};
         }

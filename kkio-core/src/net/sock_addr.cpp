@@ -23,7 +23,7 @@ namespace kkio::net {
             throw std::invalid_argument(std::format("Invalid address format: {}", address));
         }
 
-        auto ip = address.substr(0, colon_pos);
+        auto ip = std::string(address.substr(0, colon_pos));
         auto port = static_cast<uint16_t>(std::stoi(address.substr(colon_pos + 1).data()));
 
         {

@@ -7,6 +7,12 @@ module kkio.error;
 
 
 namespace kkio {
+    auto Error::from(int code) noexcept -> Error {
+        if (code < 0) {
+            code = -code;
+        }
+        return Error{code, get_error_msg(code)};
+    }
 
     auto get_error_msg(int error_no) noexcept -> std::string {
         if (error_no < 0) {
