@@ -12,6 +12,9 @@ namespace kkio {
         if (error_no < 0) {
             error_no = -error_no;
         }
+        if (error_no > 10086) {
+            return std::string(get_predefined_error_msg(error_no));
+        }
         if (error_no != 0 && error_no < 9999999) { // TODO
             std::error_code ec(error_no, std::generic_category());
             return ec.message();

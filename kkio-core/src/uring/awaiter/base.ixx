@@ -4,6 +4,7 @@ module;
 
 import std;
 import kkio.traits;
+import kkio.error;
 import kkio.coro.base;
 import kkio.uring.uring;
 import kkio.uring.iodata;
@@ -35,7 +36,7 @@ export namespace kkio::uring {
                 f(sqe, args...);
                 this->sqe = sqe;
             } else {
-                TODO();
+                this->io_data.io_result = -ERR_NO_SQE;
             }
 #ifdef KKIO_DEBUG
             this->io_data.msg = __PRETTY_FUNCTION__;
