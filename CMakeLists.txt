@@ -19,3 +19,6 @@ endif ()
 
 add_subdirectory(kkio-core)
 add_subdirectory(kkio-test)
+add_subdirectory(kkio-http)
+add_subdirectory(kkio-tls)
+add_subdirectory(third-party)

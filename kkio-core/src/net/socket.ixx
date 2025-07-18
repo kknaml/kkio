@@ -28,6 +28,8 @@ export namespace kkio::net {
         public:
 
             auto get_fd() const noexcept -> int { return fd; }
+
+            auto is_alive() const noexcept -> bool;
         };
 
         struct TcpStreamAwaiter final : coro::PhantomAwaiter<> {

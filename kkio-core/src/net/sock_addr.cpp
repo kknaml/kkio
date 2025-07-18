@@ -23,12 +23,15 @@ namespace kkio::net {
             throw std::invalid_argument(std::format("Invalid address format: {}", address));
         }
 
-        auto ip = std::string(address.substr(0, colon_pos));
+        auto host = std::string(address.substr(0, colon_pos));
         auto port = static_cast<uint16_t>(std::stoi(address.substr(colon_pos + 1).data()));
+        return from_string(host, port);
+    }
 
+    auto SocketAddress::from_string(std::string_view host, uint16_t port) -> std::unique_ptr<SocketAddress> {
         {
             sockaddr_in v4addr{};
-            if (inet_pton(AF_INET, ip.data(), &v4addr.sin_addr) == 1) {
+            if (inet_pton(AF_INET, host.data(), &v4addr.sin_addr) == 1) {
                 v4addr.sin_family = AF_INET;
                 v4addr.sin_port = htons(port);
                 return std::make_unique<IPv4Addr>(v4addr);
@@ -37,7 +40,7 @@ namespace kkio::net {
 
         {
             sockaddr_in6 v6addr{};
-            if (inet_pton(AF_INET6, ip.data(), &v6addr.sin6_addr) == 1) {
+            if (inet_pton(AF_INET6, host.data(), &v6addr.sin6_addr) == 1) {
                 v6addr.sin6_family = AF_INET6;
                 v6addr.sin6_port = htons(port);
                 return std::make_unique<IPv6Addr>(v6addr);
@@ -49,8 +52,8 @@ namespace kkio::net {
         hints.ai_socktype = SOCK_STREAM;
 
         addrinfo *result{nullptr};
-        if (getaddrinfo(ip.data(), nullptr, &hints, &result) != 0) {
-            throw std::invalid_argument(std::format("Invalid address format: {}", ip));
+        if (getaddrinfo(host.data(), nullptr, &hints, &result) != 0) {
+            throw std::invalid_argument(std::format("Invalid address format: {}", host));
         }
 
         std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> guard(result, freeaddrinfo);
@@ -65,7 +68,7 @@ namespace kkio::net {
             return std::make_unique<IPv6Addr>(*v6);
         }
 
-        throw std::invalid_argument(std::format("Invalid address format: {}", ip));
+        throw std::invalid_argument(std::format("Invalid address format: {}", host));
     }
 
     IPv4Addr::IPv4Addr(std::string_view ip, uint16_t port) : addr({}) {
@@ -130,9 +133,5 @@ namespace kkio::net {
     auto UnixAddr::to_string() const -> std::string {
         return path;
     }
-
-
-
-
 
 }

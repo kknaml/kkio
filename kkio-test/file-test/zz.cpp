@@ -8,10 +8,12 @@ import kkio.coro.awaiter_traits;
 import kkio.runtime.runtime;
 import kkio.uring.awaiter.all;
 import kkio.coro.cancellation;
+import kkio.net.sock_addr;
 
 using kkio::coro::Task;
 using namespace std::chrono_literals;
 using namespace kkio::uring;
+using namespace kkio::net;
 
 Task<> foo() {
     co_await 10ms;
@@ -31,6 +33,8 @@ Task<> foo() {
 
 Task<int> bar() {
     std::println("bar!!!");
+    auto addr = SocketAddress::from_string("google.com", 80);
+    std::println("addr is {}", *addr);
     co_await foo();
     co_return 123;
 }

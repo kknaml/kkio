@@ -28,7 +28,9 @@ export namespace kkio::net {
 
         virtual auto to_string() const -> std::string = 0;
 
-        static auto from_string(std::string_view) -> std::unique_ptr<SocketAddress>;
+        static auto from_string(std::string_view address) -> std::unique_ptr<SocketAddress>;
+
+        static auto from_string(std::string_view host, uint16_t port) -> std::unique_ptr<SocketAddress>;
     };
 
     class IPv4Addr final : public  SocketAddress {

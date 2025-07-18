@@ -74,4 +74,21 @@ export namespace kkio {
         std::println("{} not impl", msg);
         std::abort();
     }
+
+    template<typename T>
+    concept HasToString = requires(const T &t) {
+        { t.to_string() } -> std::convertible_to<std::string_view>;
+    };
+
 }
+
+template<kkio::HasToString T>
+struct std::formatter<T> {
+    constexpr auto parse(std::format_parse_context &ctx) {
+        return ctx.begin();
+    }
+
+    auto format(const T &obj, std::format_context &ctx) const {
+        return std::format_to(ctx.out(), "{}", obj.to_string());
+    }
+};

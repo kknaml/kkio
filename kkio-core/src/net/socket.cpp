@@ -1,5 +1,6 @@
 module;
 
+#include <fcntl.h>
 #include <unistd.h>
 
 import std;
@@ -7,6 +8,9 @@ import std;
 module kkio.net.socket;
 
 namespace kkio::net {
+    auto detail::BaseSocket::is_alive() const noexcept -> bool {
+        return fcntl(fd, F_GETFD) != -1;
+    }
 
     TcpStream::TcpStream(int fd) noexcept : detail::BaseSocket(fd) {
     }
