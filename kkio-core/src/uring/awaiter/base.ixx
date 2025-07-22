@@ -30,7 +30,7 @@ export namespace kkio::uring {
         requires std::is_invocable_v<F, io_uring_sqe *, Args...>
         explicit BaseUringOP(F &&f, Args ...args) {
             auto &ring = Ring::current();
-            auto *sqe = ring.get_sqe();
+            auto *sqe = static_cast<OP &>(*this).get_sqe(ring);
             if (sqe != nullptr) [[likely]] {
                 io_uring_sqe_set_data_forward(sqe, &this->io_data);
                 f(sqe, args...);
@@ -50,6 +50,7 @@ export namespace kkio::uring {
 
         template<typename Promise>
         auto await_suspend(std::coroutine_handle<Promise> handle) -> void {
+            static_cast<OP &>(*this).on_suspend();
             auto &ring = Ring::current();
             handle.promise().cancel_token->invoke_on_cancellation([&] (auto &&token) {
                 // TODO lifecycle
@@ -64,6 +65,14 @@ export namespace kkio::uring {
         BaseUringOP(BaseUringOP &&other) noexcept :
         sqe(std::exchange(other.sqe, nullptr)), io_data(other.io_data) {
             io_uring_sqe_set_data_forward(sqe, &this->io_data);
+        }
+
+        auto get_sqe(Ring &ring) noexcept -> io_uring_sqe * {
+            return ring.get_sqe();
+        }
+
+        auto on_suspend() const noexcept {
+
         }
 
         auto get_buffer_result() const noexcept -> BufferResult {

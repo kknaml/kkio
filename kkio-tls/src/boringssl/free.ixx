@@ -36,7 +36,21 @@ export namespace kkio::tls::boringssl {
     requires std::is_invocable_v<decltype(FreeFn), T*>
     using OpenSSLPtrType = std::unique_ptr<T, OpenSSLFree<FreeFn>>;
 
+    using ::SSL;
+    using ::BIO;
+    using ::X509;
+    using ::SSL_CTX;
+
     using SSLPtr = OpenSSLPtrType<SSL, SSL_free>;
     using BIOPtr = OpenSSLPtrType<BIO, BIO_free>;
     using X509Ptr = OpenSSLPtrType<X509, X509_free>;
+    using SSL_CTXPtr = OpenSSLPtrType<SSL_CTX, SSL_CTX_free>;
+
+    auto kk_new_raw_bio() -> BIO * {
+        return BIO_new(BIO_s_mem());
+    }
+
+    auto kk_new_bio() -> BIOPtr {
+        return BIOPtr(kk_new_raw_bio());
+    }
 }

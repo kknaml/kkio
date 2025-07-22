@@ -76,6 +76,11 @@ export namespace kkio {
     }
 
     template<typename T>
+    constexpr auto empty_span_buffer(std::size_t size) noexcept -> std::span<T> {
+        return std::span<T> {static_cast<T *>(nullptr), size};
+    }
+
+    template<typename T>
     concept HasToString = requires(const T &t) {
         { t.to_string() } -> std::convertible_to<std::string_view>;
     };

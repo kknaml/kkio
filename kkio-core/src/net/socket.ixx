@@ -47,7 +47,7 @@ export namespace kkio::net {
         };
     }
 
-    class TcpStream : detail::BaseSocket {
+    class TcpStream : public detail::BaseSocket {
 
     public:
         using BaseSocket::BaseSocket;
@@ -59,11 +59,11 @@ export namespace kkio::net {
 
         ~TcpStream();
 
-        auto send(std::span<const uint8_t *> data, int flags = 0) -> Awaitable<int> auto {
+        auto send(std::span<const uint8_t> data, int flags = 0) -> Awaitable<int> auto {
             return uring::Send(fd, data.data(), data.size(), flags);
         }
 
-        auto recv(std::span<uint8_t *> data, int flags = 0) -> Awaitable<BufferResult> auto {
+        auto recv(std::span<uint8_t> data, int flags = 0) -> Awaitable<BufferResult> auto {
             return uring::Recv(fd, data.data(), data.size(), flags);
         }
 
