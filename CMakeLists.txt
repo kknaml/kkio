@@ -9,7 +9,7 @@ project(kkio)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message(STATUS "Using Clang compiler")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -lc++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     # add_link_options("-lc++ -lc++abi")
 endif ()
 
@@ -18,6 +18,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif ()
 
 add_subdirectory(kkio-core)
+add_subdirectory(kkio-util)
 add_subdirectory(kkio-test)
 add_subdirectory(kkio-http)
 add_subdirectory(kkio-tls)
