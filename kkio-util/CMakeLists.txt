@@ -10,3 +10,4 @@ target_sources(kkio-util PUBLIC
         FILES ${KKIO_UTIL_MODULES}
 )
 
+target_link_libraries(kkio-util PUBLIC kkio-core)
