@@ -4,6 +4,7 @@ import std;
 import kkio.traits;
 import kkio.coro.awaiter_traits;
 import kkio.coro.base;
+import kkio.coro.task;
 import kkio.uring.iodata;
 import kkio.uring.awaiter.all;
 import kkio.net.sock_addr;
@@ -67,12 +68,35 @@ export namespace kkio::net {
             return uring::Recv(fd, data.data(), data.size(), flags);
         }
 
+        auto send_all(std::span<const uint8_t> data, int flags = 0) -> coro::Task<> {
+            uint64_t sent = 0;
+            while (sent < data.size()) {
+                auto to_send = std::span(data.data() + sent, data.size() - sent);
+                auto s = co_await this->send(to_send, flags);
+                sent += s;
+            }
+        }
+
         static auto connect(SocketAddress &addr) -> Awaitable<TcpStream> auto {
             auto fd = new_tcp_socket(addr);
             fd = check_socket_fd_throw(fd);
             return detail::TcpStreamAwaiter(uring::Connect(fd, addr.to_addr(), addr.length()));
         }
     };
+
+    auto pipe(TcpStream &src, TcpStream &dst) -> coro::Task<> {
+        std::array<uint8_t, 4096> buffer{};
+        while (true) {
+            if (!src.is_alive()) {
+                throw std::runtime_error("pipe src closed");
+            }
+            if (!dst.is_alive()) {
+                throw std::runtime_error("pipe dst closed");
+            }
+            auto [_, read_len] = co_await src.recv(buffer);
+            co_await dst.send_all(std::span{buffer.data(), read_len});
+        }
+    }
 
     namespace detail {
         auto TcpStreamAwaiter::await_resume() const -> TcpStream {

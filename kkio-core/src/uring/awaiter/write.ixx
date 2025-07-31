@@ -12,7 +12,7 @@ export namespace kkio::uring {
 
     struct Write final : BaseUringOP<Write> {
 
-        Write(int fd, void *buf, uint32_t nbytes, uint64_t offset)
+        Write(int fd, const void *buf, uint32_t nbytes, uint64_t offset)
         : BaseUringOP(io_uring_prep_write, fd, buf, nbytes, offset) {
 
         }
