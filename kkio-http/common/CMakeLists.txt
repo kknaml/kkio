@@ -10,4 +10,4 @@ target_sources(kkio-http-common PUBLIC
         FILES ${KKIO_HTTP_COMMON_MODULES}
 )
 
-target_link_libraries(kkio-http-common PUBLIC kkio-core kkio-tls kkio-util)
+target_link_libraries(kkio-http-common PUBLIC kkio-core kkio-tls)

@@ -18,7 +18,6 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 endif ()
 
 add_subdirectory(kkio-core)
-add_subdirectory(kkio-util)
 add_subdirectory(kkio-test)
 add_subdirectory(kkio-http)
 add_subdirectory(kkio-tls)

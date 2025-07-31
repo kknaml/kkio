@@ -84,19 +84,19 @@ export namespace kkio::net {
         }
     };
 
-    auto pipe(TcpStream &src, TcpStream &dst) -> coro::Task<> {
-        std::array<uint8_t, 4096> buffer{};
-        while (true) {
-            if (!src.is_alive()) {
-                throw std::runtime_error("pipe src closed");
-            }
-            if (!dst.is_alive()) {
-                throw std::runtime_error("pipe dst closed");
-            }
-            auto [_, read_len] = co_await src.recv(buffer);
-            co_await dst.send_all(std::span{buffer.data(), read_len});
-        }
-    }
+    // auto pipe(TcpStream &src, TcpStream &dst) -> coro::Task<> {
+    //     std::array<uint8_t, 4096> buffer{};
+    //     while (true) {
+    //         if (!src.is_alive()) {
+    //             throw std::runtime_error("pipe src closed");
+    //         }
+    //         if (!dst.is_alive()) {
+    //             throw std::runtime_error("pipe dst closed");
+    //         }
+    //         auto [_, read_len] = co_await src.recv(buffer);
+    //         co_await dst.send_all(std::span{buffer.data(), read_len});
+    //     }
+    // }
 
     namespace detail {
         auto TcpStreamAwaiter::await_resume() const -> TcpStream {

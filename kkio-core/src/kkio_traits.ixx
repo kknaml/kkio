@@ -85,6 +85,8 @@ export namespace kkio {
         { t.to_string() } -> std::convertible_to<std::string_view>;
     };
 
+    using Duration = std::chrono::milliseconds;
+
 }
 
 template<kkio::HasToString T>
